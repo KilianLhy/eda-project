@@ -4,7 +4,7 @@
 
 | Nom | Prénom | GitHub |
 |-----|--------|--------|
-| Lahaye | Kilian | kilianLhy |
+| Lahaye | Kilian | KilianLhy |
 | Sow | Moustapha | moustaphasow01 |
 | Stawiarski | Hugo | hugostarte |
 
@@ -27,39 +27,7 @@
 
 ### Proposition d'architecture (alignée avec le projet)
 
-```mermaid
-flowchart LR
-    subgraph Frontend
-      WEB[taskflow-web / Next.js]\nKanban page
-    end
-
-    subgraph API[taskflow-api / NestJS]
-      PC[ProjectController]
-      TC[TaskController]
-      PS[ProjectService]
-      TS[TaskService]
-      PR[(ProjectRepository Port)]
-      TR[(TaskRepository Port)]
-      EB[(EventBus Port)]
-      OPR[OrmProjectRepository\n(in-memory for phase 1)]
-      OTR[OrmTaskRepository\n(in-memory for phase 1)]
-      BUS[InMemoryEventBus]
-      CH[ConsoleTaskEventHandler]
-    end
-
-    WEB -->|HTTP| PC
-    WEB -->|HTTP| TC
-    PC --> PS
-    TC --> TS
-    PS --> PR
-    TS --> TR
-    PS --> EB
-    TS --> EB
-    PR --> OPR
-    TR --> OTR
-    EB --> BUS
-    BUS --> CH
-```
+<img width="1188" height="457" alt="Capture d’écran 2026-04-01 115702" src="https://github.com/user-attachments/assets/0e7ea606-ad85-4725-89f0-20aabecc56d3" />
 
 ### Regles d'architecture a respecter
 
