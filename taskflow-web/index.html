@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow - Timeline & Saved Views</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>TaskFlow Workspace Dashboard</h1>
+      <p class="subtitle">Features: audit trail, activity timeline, saved filters</p>
+
+      <section class="card">
+        <h2>Create task</h2>
+        <form id="task-form">
+          <input id="task-title" placeholder="Task title" required />
+          <input id="task-assignee" placeholder="Assignee (ex: u1)" />
+          <button type="submit">Create</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Saved views</h2>
+        <form id="view-form">
+          <input id="view-name" placeholder="View name" required />
+          <select id="view-status">
+            <option value="">Any status</option>
+            <option>Todo</option>
+            <option>In Progress</option>
+            <option>Done</option>
+          </select>
+          <input id="view-assignee" placeholder="Assignee filter" />
+          <button type="submit">Save view</button>
+        </form>
+        <div class="inline">
+          <select id="view-picker"></select>
+          <button id="apply-view" type="button">Apply view</button>
+          <button id="clear-view" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Tasks</h2>
+          <ul id="tasks"></ul>
+        </article>
+        <article class="card">
+          <h2>Activity timeline</h2>
+          <ul id="timeline"></ul>
+        </article>
+        <article class="card">
+          <h2>Audit trail</h2>
+          <ul id="audit"></ul>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
