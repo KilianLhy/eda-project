@@ -4,8 +4,9 @@
 
 | Nom | Prénom | GitHub |
 |-----|--------|--------|
-|     |        |        |
-|     |        |        |
+| Lahaye | Kilian | kilianLhy |
+| Sow | Moustapha | moustaphasow01 |
+| Stawiarski | Hugo | hugostarte |
 
 ---
 
@@ -24,7 +25,102 @@
 
 ## Architecture — Vue d'ensemble
 
-> Insérer ici un schéma d'architecture (image ou dessin libre)
+### Proposition d'architecture (alignée avec le projet)
+
+```mermaid
+flowchart LR
+    subgraph Frontend
+      WEB[taskflow-web / Next.js]\nKanban page
+    end
+
+    subgraph API[taskflow-api / NestJS]
+      PC[ProjectController]
+      TC[TaskController]
+      PS[ProjectService]
+      TS[TaskService]
+      PR[(ProjectRepository Port)]
+      TR[(TaskRepository Port)]
+      EB[(EventBus Port)]
+      OPR[OrmProjectRepository\n(in-memory for phase 1)]
+      OTR[OrmTaskRepository\n(in-memory for phase 1)]
+      BUS[InMemoryEventBus]
+      CH[ConsoleTaskEventHandler]
+    end
+
+    WEB -->|HTTP| PC
+    WEB -->|HTTP| TC
+    PC --> PS
+    TC --> TS
+    PS --> PR
+    TS --> TR
+    PS --> EB
+    TS --> EB
+    PR --> OPR
+    TR --> OTR
+    EB --> BUS
+    BUS --> CH
+```
+
+### Regles d'architecture a respecter
+
+- Le domaine ne depend d'aucun framework (`NestJS`, ORM, HTTP, WebSocket).
+- Les controllers recoivent les requetes et deleguent; aucune logique metier dans `presentation/`.
+- Les services applicatifs orchestrent les cas d'usage et ne parlent qu'aux interfaces (ports).
+- Les acces base de donnees passent uniquement par les repositories (ports + adaptateurs).
+- Les evenements metier sont publies par le domaine/applicatif sans connaitre les consommateurs.
+
+### Structure cible (backend NestJS)
+
+```text
+taskflow-api/src/
+	project/
+		domain/
+			project.entity.ts
+			project.repository.ts
+			project-created.event.ts
+		application/
+			project.service.ts
+		infrastructure/
+			orm-project.repository.ts
+		presentation/
+			project.controller.ts
+
+	task/
+		domain/
+			task.entity.ts
+			task-status.vo.ts
+			task.repository.ts
+			task-created.event.ts
+			task-moved.event.ts
+		application/
+			task.service.ts
+		infrastructure/
+			orm-task.repository.ts
+		presentation/
+			task.controller.ts
+
+	shared/
+		events/
+			event-bus.port.ts
+			nest-event-bus.adapter.ts
+			handlers/
+				console.handler.ts
+				notification.handler.ts
+				websocket.handler.ts
+				audit.handler.ts
+```
+
+### Projection par rendu (pour absorber les disruptions)
+
+- Rendu 1: `project` + `task`, `TaskStatus`, events `task.created` et `task.moved`, `ConsoleHandler`, tests unitaires metier sans BDD, frontend Kanban minimal.
+- Rendu 2: ajout `WebSocketHandler`, notifications multi-canal, `workspaceId` (multi-tenant basique), Docker Compose complet, CI verte, sans reecriture du domaine.
+- Rendu 3: ajout resilience (circuit breaker email), coexistence API v1/v2, audit trail automatique, toujours par ajout d'adaptateurs/handlers.
+
+### Frontend minimal attendu (Rendu 1)
+
+- Une page Kanban avec 3 colonnes (`Todo`, `In Progress`, `Done`).
+- Appels REST vers l'API NestJS.
+- Action de deplacement de tache par bouton (drag-and-drop non obligatoire).
 
 ---
 
@@ -36,7 +132,7 @@
 
 | ADR | Titre | Statut |
 |-----|-------|--------|
-| [ADR-001](docs/ADR-001.md) | | |
+| [ADR-001](docs/ADR-001.md) | Choix de stack NestJS + Next.js | Accepté |
 | [ADR-002](docs/ADR-002.md) | | |
 | [ADR-003](docs/ADR-003.md) | | |
 
