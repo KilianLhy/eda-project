@@ -1,0 +1,43 @@
+:root {
+  --bg: #f7f4ee;
+  --ink: #202020;
+  --card: #ffffff;
+  --line: #d6cec0;
+  --todo: #e8f0ff;
+  --progress: #fff4d8;
+  --done: #e4f8e8;
+  --accent: #1d6f5f;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 20%, #fff9e8 0%, transparent 45%),
+    radial-gradient(circle at 82% 14%, #e5f4ff 0%, transparent 40%),
+    var(--bg);
+  font-family: var(--font-space-grotesk), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+main {
+  width: min(1100px, 92vw);
+  margin: 2rem auto;
+}
+
+input,
+button,
+select {
+  font: inherit;
+}
