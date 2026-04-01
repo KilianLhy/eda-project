@@ -27,7 +27,7 @@
 
 ### Proposition d'architecture (alignée avec le projet)
 
-<img width="1188" height="457" alt="Schema archi" src="images/schema.png" />
+<img alt="Schema archi" src="images/schema.png" height="400" />
 
 
 ### Regles d'architecture a respecter
