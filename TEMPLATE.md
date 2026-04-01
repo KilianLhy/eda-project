@@ -27,7 +27,8 @@
 
 ### Proposition d'architecture (alignée avec le projet)
 
-<img width="1188" height="457" alt="Capture d’écran 2026-04-01 115702" src="https://github.com/user-attachments/assets/0e7ea606-ad85-4725-89f0-20aabecc56d3" />
+<img width="1188" height="457" alt="Schema archi" src="images/schema.png" />
+
 
 ### Regles d'architecture a respecter
 
