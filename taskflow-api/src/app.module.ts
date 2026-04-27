@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { ProjectController } from './project/presentation/project.controller';
-import { TaskController } from './task/presentation/task.controller';
+import { ProjectControllerV1 } from './api/v1/project.controller';
+import { TaskControllerV1 } from './api/v1/task.controller';
+import { ProjectControllerV2 } from './api/v2/project.controller';
+import { TaskControllerV2 } from './api/v2/task.controller';
 import { InMemoryEventBus } from './shared/infrastructure/in-memory-event-bus';
 import { PROJECT_REPOSITORY } from './project/domain/project.repository';
 import { TASK_REPOSITORY } from './task/domain/task.repository';
@@ -31,6 +33,8 @@ import {
   EMAIL_NOTIFICATION_CHANNEL,
   IN_APP_NOTIFICATION_CHANNEL,
 } from './notification/notification.tokens';
+import { FAILED_MESSAGE_QUEUE } from './notification/failed-message-queue.port';
+import { PrismaFailedMessageQueue } from './notification/prisma-failed-message-queue';
 import { AuditLogHandler } from './audit/audit-log.handler';
 
 @Module({
@@ -44,8 +48,10 @@ import { AuditLogHandler } from './audit/audit-log.handler';
   ],
   controllers: [
     AuthController,
-    ProjectController,
-    TaskController,
+    ProjectControllerV1,
+    TaskControllerV1,
+    ProjectControllerV2,
+    TaskControllerV2,
     NotificationPreferenceController,
   ],
   providers: [
@@ -65,6 +71,7 @@ import { AuditLogHandler } from './audit/audit-log.handler';
     NoopRealtimeBroadcaster,
     EmailNotificationChannel,
     InAppNotificationChannel,
+    PrismaFailedMessageQueue,
     {
       provide: EMAIL_NOTIFICATION_CHANNEL,
       useExisting: EmailNotificationChannel,
@@ -72,6 +79,10 @@ import { AuditLogHandler } from './audit/audit-log.handler';
     {
       provide: IN_APP_NOTIFICATION_CHANNEL,
       useExisting: InAppNotificationChannel,
+    },
+    {
+      provide: FAILED_MESSAGE_QUEUE,
+      useExisting: PrismaFailedMessageQueue,
     },
     {
       provide: REALTIME_BROADCASTER,
