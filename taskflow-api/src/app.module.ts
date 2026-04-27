@@ -5,8 +5,10 @@ import { TaskController } from './task/presentation/task.controller';
 import { InMemoryEventBus } from './shared/infrastructure/in-memory-event-bus';
 import { PROJECT_REPOSITORY } from './project/domain/project.repository';
 import { TASK_REPOSITORY } from './task/domain/task.repository';
+import { USER_REPOSITORY } from './user/domain/user.repository';
 import { OrmProjectRepository } from './project/infrastructure/orm-project.repository';
 import { OrmTaskRepository } from './task/infrastructure/orm-task.repository';
+import { OrmUserRepository } from './user/infrastructure/orm-user.repository';
 import { ProjectService } from './project/application/project.service';
 import { TaskService } from './task/application/task.service';
 import { ConsoleTaskEventHandler } from './task/infrastructure/console-task-event.handler';
@@ -21,6 +23,7 @@ import { TaskMovedRealtimeHandler } from './realtime/task-moved-realtime.handler
 import { TaskAssignedRealtimeHandler } from './realtime/task-assigned-realtime.handler';
 import { NoopRealtimeBroadcaster } from './realtime/noop-realtime-broadcaster';
 import { NotificationPreferenceController } from './notification/notification-preference.controller';
+import { NotificationPreferenceService } from './notification/notification-preference.service';
 import { TaskNotificationHandler } from './notification/task-notification.handler';
 import { EmailNotificationChannel } from './notification/email-notification.channel';
 import { InAppNotificationChannel } from './notification/in-app-notification.channel';
@@ -50,6 +53,7 @@ import { AuditLogHandler } from './audit/audit-log.handler';
     JwtAuthGuard,
     ProjectService,
     TaskService,
+    NotificationPreferenceService,
     ConsoleTaskEventHandler,
     TaskMovedRealtimeHandler,
     TaskAssignedRealtimeHandler,
@@ -84,6 +88,10 @@ import { AuditLogHandler } from './audit/audit-log.handler';
     {
       provide: TASK_REPOSITORY,
       useClass: OrmTaskRepository,
+    },
+    {
+      provide: USER_REPOSITORY,
+      useClass: OrmUserRepository,
     },
     {
       provide: EVENT_BUS,

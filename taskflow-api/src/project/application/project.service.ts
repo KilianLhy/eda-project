@@ -7,7 +7,8 @@ import { createProjectCreatedEvent } from '../domain/project-created.event';
 import { Project } from '../domain/project.entity';
 import { PROJECT_REPOSITORY } from '../domain/project.repository';
 import type { ProjectRepository } from '../domain/project.repository';
-import { PrismaService } from '../../shared/infrastructure/prisma.service';
+import { USER_REPOSITORY } from '../../user/domain/user.repository';
+import type { UserRepository } from '../../user/domain/user.repository';
 
 export interface ProjectMemberDto {
   id: string;
@@ -20,7 +21,7 @@ export class ProjectService {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
-    private readonly prisma: PrismaService,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
   async createProject(name: string, actorId: string): Promise<Project> {
@@ -63,19 +64,11 @@ export class ProjectService {
       throw new NotFoundException(`Project ${projectId} not found`);
     }
 
-    // Fetch user details for all members
-    const users = await this.prisma.user.findMany({
-      where: {
-        id: {
-          in: project.memberIds,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-    });
+    const users = await this.userRepository.findMany(project.memberIds);
 
-    return users;
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+    }));
   }
 }

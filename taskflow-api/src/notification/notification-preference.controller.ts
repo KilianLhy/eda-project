@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
-import { PrismaService } from '../shared/infrastructure/prisma.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUserDecorator } from '../shared/presentation/current-user.decorator';
 import type { CurrentUser } from '../shared/presentation/current-user.decorator';
+import { NotificationPreferenceService } from './notification-preference.service';
 
 interface UpdateNotificationPreferenceDto {
   emailEnabled?: boolean;
@@ -12,21 +12,13 @@ interface UpdateNotificationPreferenceDto {
 @UseGuards(JwtAuthGuard)
 @Controller('notification-preferences')
 export class NotificationPreferenceController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly notificationPreferenceService: NotificationPreferenceService,
+  ) {}
 
   @Get('me')
   async getMyPreferences(@CurrentUserDecorator() user: CurrentUser) {
-    const preferences = await this.prisma.notificationPreference.findUnique({
-      where: { userId: user.id },
-    });
-
-    return (
-      preferences ?? {
-        userId: user.id,
-        emailEnabled: true,
-        inAppEnabled: true,
-      }
-    );
+    return this.notificationPreferenceService.getPreferences(user.id);
   }
 
   @Patch('me')
@@ -34,17 +26,9 @@ export class NotificationPreferenceController {
     @CurrentUserDecorator() user: CurrentUser,
     @Body() body: UpdateNotificationPreferenceDto,
   ) {
-    return this.prisma.notificationPreference.upsert({
-      where: { userId: user.id },
-      update: {
-        emailEnabled: body.emailEnabled,
-        inAppEnabled: body.inAppEnabled,
-      },
-      create: {
-        userId: user.id,
-        emailEnabled: body.emailEnabled ?? true,
-        inAppEnabled: body.inAppEnabled ?? true,
-      },
+    return this.notificationPreferenceService.updatePreferences(user.id, {
+      emailEnabled: body.emailEnabled ?? true,
+      inAppEnabled: body.inAppEnabled ?? true,
     });
   }
 }
