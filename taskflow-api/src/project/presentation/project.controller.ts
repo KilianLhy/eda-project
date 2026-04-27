@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ProjectService } from '../application/project.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { CurrentUserDecorator } from '../../shared/presentation/current-user.decorator';
+import type { CurrentUser } from '../../shared/presentation/current-user.decorator';
 
 interface CreateProjectDto {
   name: string;
@@ -9,6 +12,7 @@ interface AddMemberDto {
   memberId: string;
 }
 
+@UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
@@ -16,9 +20,9 @@ export class ProjectController {
   @Post()
   async createProject(
     @Body() body: CreateProjectDto,
-    @Headers('x-user-id') userId?: string,
+    @CurrentUserDecorator() user: CurrentUser,
   ) {
-    return this.projectService.createProject(body.name, userId ?? 'demo-user');
+    return this.projectService.createProject(body.name, user.id);
   }
 
   @Get()
@@ -26,16 +30,17 @@ export class ProjectController {
     return this.projectService.listProjects();
   }
 
+  @Get(':projectId/members')
+  async getMembers(@Param('projectId') projectId: string) {
+    return this.projectService.getMembers(projectId);
+  }
+
   @Post(':projectId/members')
   async addMember(
     @Param('projectId') projectId: string,
     @Body() body: AddMemberDto,
-    @Headers('x-user-id') userId?: string,
+    @CurrentUserDecorator() user: CurrentUser,
   ) {
-    return this.projectService.addMember(
-      projectId,
-      body.memberId,
-      userId ?? 'demo-user',
-    );
+    return this.projectService.addMember(projectId, body.memberId, user.id);
   }
 }

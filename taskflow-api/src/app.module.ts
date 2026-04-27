@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { ProjectController } from './project/presentation/project.controller';
 import { TaskController } from './task/presentation/task.controller';
 import { InMemoryEventBus } from './shared/infrastructure/in-memory-event-bus';
@@ -11,16 +12,71 @@ import { TaskService } from './task/application/task.service';
 import { ConsoleTaskEventHandler } from './task/infrastructure/console-task-event.handler';
 import { EVENT_BUS } from './shared/domain/event-bus.port';
 import { PrismaService } from './shared/infrastructure/prisma.service';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { TaskRealtimeGateway } from './realtime/task-realtime.gateway';
+import { REALTIME_BROADCASTER } from './realtime/realtime-broadcaster.port';
+import { TaskMovedRealtimeHandler } from './realtime/task-moved-realtime.handler';
+import { TaskAssignedRealtimeHandler } from './realtime/task-assigned-realtime.handler';
+import { NoopRealtimeBroadcaster } from './realtime/noop-realtime-broadcaster';
+import { NotificationPreferenceController } from './notification/notification-preference.controller';
+import { TaskNotificationHandler } from './notification/task-notification.handler';
+import { EmailNotificationChannel } from './notification/email-notification.channel';
+import { InAppNotificationChannel } from './notification/in-app-notification.channel';
+import {
+  EMAIL_NOTIFICATION_CHANNEL,
+  IN_APP_NOTIFICATION_CHANNEL,
+} from './notification/notification.tokens';
+import { AuditLogHandler } from './audit/audit-log.handler';
 
 @Module({
-  imports: [],
-  controllers: [ProjectController, TaskController],
+  imports: [
+    JwtModule.register({
+      secret: process.env.JWT_SECRET ?? 'dev-secret',
+      signOptions: {
+        expiresIn: '1h',
+      },
+    }),
+  ],
+  controllers: [
+    AuthController,
+    ProjectController,
+    TaskController,
+    NotificationPreferenceController,
+  ],
   providers: [
+    AuthService,
+    JwtAuthGuard,
     ProjectService,
     TaskService,
     ConsoleTaskEventHandler,
+    TaskMovedRealtimeHandler,
+    TaskAssignedRealtimeHandler,
+    TaskNotificationHandler,
+    AuditLogHandler,
     PrismaService,
     InMemoryEventBus,
+    TaskRealtimeGateway,
+    NoopRealtimeBroadcaster,
+    EmailNotificationChannel,
+    InAppNotificationChannel,
+    {
+      provide: EMAIL_NOTIFICATION_CHANNEL,
+      useExisting: EmailNotificationChannel,
+    },
+    {
+      provide: IN_APP_NOTIFICATION_CHANNEL,
+      useExisting: InAppNotificationChannel,
+    },
+    {
+      provide: REALTIME_BROADCASTER,
+      useFactory: (
+        gateway: TaskRealtimeGateway,
+        noop: NoopRealtimeBroadcaster,
+      ) => (process.env.NODE_ENV === 'cli' ? noop : gateway),
+      inject: [TaskRealtimeGateway, NoopRealtimeBroadcaster],
+    },
     {
       provide: PROJECT_REPOSITORY,
       useClass: OrmProjectRepository,
