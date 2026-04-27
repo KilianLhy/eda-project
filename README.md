@@ -144,6 +144,48 @@ Vous la construisez progressivement sur 19h, en 4 phases. À chaque phase, le cl
 > L'évaluation porte d'abord sur la **qualité de l'architecture**, la séparation des responsabilités et la capacité à absorber le changement.
 > Une interface simple mais propre et fonctionnelle vaut mieux qu'une UI très ambitieuse construite au détriment du domaine, des tests ou du découplage.
 
+## Disruption #1
+
+Cette version integre les nouveaux besoins produits sans modifier la logique metier des services `ProjectService` et `TaskService`.
+
+### Authentification
+
+- Inscription: `POST /auth/register`
+- Connexion: `POST /auth/login`
+- Les routes metier utilisent `Authorization: Bearer <token>`.
+- Le frontend propose un ecran de login avant d'ouvrir le Kanban.
+
+### Temps reel
+
+- Les deplacements de taches sont diffuses via Socket.IO.
+- Les mises a jour sont scopees par projet avec la room `project:<projectId>`.
+
+### Notifications
+
+- `task.assigned` notifie le membre assigne.
+- `task.moved` notifie tous les membres du projet.
+- Canaux initiaux: email simule par log console et notification in-app persistee en base.
+- Preferences utilisateur via `GET /notification-preferences/me` et `PATCH /notification-preferences/me`.
+
+### Audit trail
+
+- Toutes les ecritures sur `Task` et `Project` alimentent `AuditLog` via un handler d'evenement.
+- La logique metier reste decouplee du stockage des logs.
+
+### CLI d'administration
+
+- `NODE_ENV=cli npm run admin:cli -- create-project "Nom"`
+- `NODE_ENV=cli npm run admin:cli -- create-task <projectId> "Titre"`
+- `NODE_ENV=cli npm run admin:cli -- seed-demo "Projet de demo"`
+
+### Lancement
+
+```bash
+docker compose up -d --build
+```
+
+Le systeme demarre avec PostgreSQL, API et frontend. Les variables sensibles passent par `.env` local documente dans `.env.example`.
+
 ### Stack de référence
 
 | Couche | Technologie |

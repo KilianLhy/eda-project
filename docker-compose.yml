@@ -9,6 +9,7 @@ services:
     environment:
       - PORT=${API_PORT:-3000}
       - DATABASE_URL=${API_DATABASE_URL:-postgresql://taskflow:taskflow@postgres:5432/taskflow?schema=public}
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-real-env}
     command: sh -c "npm run prisma:migrate:deploy && npm run start:prod"
     ports:
       - "${API_PORT:-3000}:3000"
