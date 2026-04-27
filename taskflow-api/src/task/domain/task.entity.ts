@@ -51,14 +51,14 @@ export class Task {
   assignTo(assigneeId: string): void {
     this.assigneeId = assigneeId;
   }
-  
-    toJSON() {
-      return {
-        id: this.id,
-        projectId: this.projectId,
-        title: this.title,
-        statusValue: this.statusValue,
-        assigneeId: this.assigneeId,
-      };
-    }
+
+  toJSON() {
+    return {
+      id: this.id,
+      projectId: this.projectId,
+      title: this.title,
+      statusValue: this.statusValue,
+      assigneeId: this.assigneeId,
+    };
+  }
 }

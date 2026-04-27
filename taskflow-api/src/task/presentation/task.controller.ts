@@ -2,15 +2,18 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TaskService } from '../application/task.service';
 import { TaskStatusValue } from '../domain/task-status.vo';
 import { TaskDto } from './task.dto';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { CurrentUserDecorator } from '../../shared/presentation/current-user.decorator';
+import type { CurrentUser } from '../../shared/presentation/current-user.decorator';
 
 interface CreateTaskDto {
   projectId: string;
@@ -26,6 +29,7 @@ interface AssignTaskDto {
   assigneeId: string;
 }
 
+@UseGuards(JwtAuthGuard)
 @Controller('tasks')
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
@@ -33,13 +37,13 @@ export class TaskController {
   @Post()
   async createTask(
     @Body() body: CreateTaskDto,
-    @Headers('x-user-id') userId?: string,
+    @CurrentUserDecorator() user: CurrentUser,
   ) {
     const task = await this.taskService.createTask({
       projectId: body.projectId,
       title: body.title,
       assigneeId: body.assigneeId,
-      actorId: userId ?? 'demo-user',
+      actorId: user.id,
     });
     return new TaskDto(task);
   }
@@ -54,13 +58,9 @@ export class TaskController {
   async moveTask(
     @Param('taskId') taskId: string,
     @Body() body: MoveTaskDto,
-    @Headers('x-user-id') userId?: string,
+    @CurrentUserDecorator() user: CurrentUser,
   ) {
-    const task = await this.taskService.moveTask(
-      taskId,
-      body.status,
-      userId ?? 'demo-user',
-    );
+    const task = await this.taskService.moveTask(taskId, body.status, user.id);
     return new TaskDto(task);
   }
 
@@ -68,12 +68,12 @@ export class TaskController {
   async assignTask(
     @Param('taskId') taskId: string,
     @Body() body: AssignTaskDto,
-    @Headers('x-user-id') userId?: string,
+    @CurrentUserDecorator() user: CurrentUser,
   ) {
     const task = await this.taskService.assignTask(
       taskId,
       body.assigneeId,
-      userId ?? 'demo-user',
+      user.id,
     );
     return new TaskDto(task);
   }
