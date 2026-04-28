@@ -570,7 +570,7 @@ export default function Home() {
                 justifyContent: "center",
               }}
             >
-              Notifications
+              ?
               {notifications.length > 0 && (
                 <span
                   style={{
