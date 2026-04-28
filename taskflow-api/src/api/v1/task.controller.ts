@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -76,5 +77,10 @@ export class TaskControllerV1 {
       user.id,
     );
     return new TaskDto(task);
+  }
+
+  @Delete(':taskId')
+  async deleteTask(@Param('taskId') taskId: string) {
+    return this.taskService.deleteTask(taskId);
   }
 }

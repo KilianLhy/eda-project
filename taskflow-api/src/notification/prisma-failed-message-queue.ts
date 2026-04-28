@@ -17,7 +17,7 @@ export class PrismaFailedMessageQueue implements FailedMessageQueuePort {
       data: {
         channelName,
         userId,
-        context: context as unknown as Record<string, unknown>,
+        context: context as any,
         error,
       },
     });

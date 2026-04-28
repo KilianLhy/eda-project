@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -86,6 +87,14 @@ export class TaskControllerV2 {
     );
     return {
       data: new TaskDto(task),
+      version: '2.0',
+    };
+  }
+
+  @Delete(':taskId')
+  async deleteTask(@Param('taskId') taskId: string) {
+    await this.taskService.deleteTask(taskId);
+    return {
       version: '2.0',
     };
   }
