@@ -23,6 +23,8 @@ import { TaskRealtimeGateway } from './realtime/task-realtime.gateway';
 import { REALTIME_BROADCASTER } from './realtime/realtime-broadcaster.port';
 import { TaskMovedRealtimeHandler } from './realtime/task-moved-realtime.handler';
 import { TaskAssignedRealtimeHandler } from './realtime/task-assigned-realtime.handler';
+import { TaskCreatedRealtimeHandler } from './realtime/task-created-realtime.handler';
+import { TaskDeletedRealtimeHandler } from './realtime/task-deleted-realtime.handler';
 import { NoopRealtimeBroadcaster } from './realtime/noop-realtime-broadcaster';
 import { NotificationPreferenceController } from './notification/notification-preference.controller';
 import { NotificationPreferenceService } from './notification/notification-preference.service';
@@ -63,6 +65,8 @@ import { AuditLogHandler } from './audit/audit-log.handler';
     ConsoleTaskEventHandler,
     TaskMovedRealtimeHandler,
     TaskAssignedRealtimeHandler,
+    TaskCreatedRealtimeHandler,
+    TaskDeletedRealtimeHandler,
     TaskNotificationHandler,
     AuditLogHandler,
     PrismaService,

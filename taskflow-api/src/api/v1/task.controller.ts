@@ -80,7 +80,10 @@ export class TaskControllerV1 {
   }
 
   @Delete(':taskId')
-  async deleteTask(@Param('taskId') taskId: string) {
-    return this.taskService.deleteTask(taskId);
+  async deleteTask(
+    @Param('taskId') taskId: string,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    return this.taskService.deleteTask(taskId, user.id);
   }
 }

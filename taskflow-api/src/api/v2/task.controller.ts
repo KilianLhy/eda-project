@@ -92,8 +92,11 @@ export class TaskControllerV2 {
   }
 
   @Delete(':taskId')
-  async deleteTask(@Param('taskId') taskId: string) {
-    await this.taskService.deleteTask(taskId);
+  async deleteTask(
+    @Param('taskId') taskId: string,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    await this.taskService.deleteTask(taskId, user.id);
     return {
       version: '2.0',
     };

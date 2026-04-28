@@ -236,6 +236,16 @@ export default function Home() {
       addNotification(`Vous avez été assigné à: "${data.taskTitle}"`, "task.assigned");
     });
 
+      socket.on("task.created", (data) => {
+        void loadTasks(projectId);
+        addNotification(`Nouvelle tâche créée`, "task.moved");
+      });
+
+      socket.on("task.deleted", (data) => {
+        void loadTasks(projectId);
+        addNotification(`Tâche supprimée`, "task.moved");
+      });
+
     return () => {
       socket.emit("project.leave", { projectId });
       socket.disconnect();
@@ -570,7 +580,7 @@ export default function Home() {
                 justifyContent: "center",
               }}
             >
-              ?
+              🔔
               {notifications.length > 0 && (
                 <span
                   style={{
