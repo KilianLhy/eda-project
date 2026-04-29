@@ -11,6 +11,8 @@ import {
   EMAIL_NOTIFICATION_CHANNEL,
   IN_APP_NOTIFICATION_CHANNEL,
 } from './notification.tokens';
+import { FAILED_MESSAGE_QUEUE } from './failed-message-queue.port';
+import type { FailedMessageQueuePort } from './failed-message-queue.port';
 
 @Injectable()
 export class TaskNotificationHandler implements OnModuleInit {
@@ -23,6 +25,8 @@ export class TaskNotificationHandler implements OnModuleInit {
     private readonly emailChannel: NotificationChannelPort,
     @Inject(IN_APP_NOTIFICATION_CHANNEL)
     private readonly inAppChannel: NotificationChannelPort,
+    @Inject(FAILED_MESSAGE_QUEUE)
+    private readonly failedMessageQueue: FailedMessageQueuePort,
   ) {}
 
   onModuleInit(): void {
@@ -130,11 +134,33 @@ export class TaskNotificationHandler implements OnModuleInit {
     const inAppEnabled = preferences?.inAppEnabled ?? true;
 
     if (emailEnabled && this.emailChannel.channelName === 'email') {
-      await this.emailChannel.send(context);
+      try {
+        await this.emailChannel.send(context);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await this.failedMessageQueue.enqueue(
+          this.emailChannel.channelName,
+          userId,
+          context,
+          errorMessage,
+        );
+        console.error(`[notification.email] Failed to send: ${errorMessage}`);
+      }
     }
 
     if (inAppEnabled && this.inAppChannel.channelName === 'in-app') {
-      await this.inAppChannel.send(context);
+      try {
+        await this.inAppChannel.send(context);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await this.failedMessageQueue.enqueue(
+          this.inAppChannel.channelName,
+          userId,
+          context,
+          errorMessage,
+        );
+        console.error(`[notification.in-app] Failed to send: ${errorMessage}`);
+      }
     }
   }
 }

@@ -18,6 +18,11 @@ type ProjectMember = {
   email: string;
 };
 
+type Project = {
+  id: string;
+  name: string;
+};
+
 type Notification = {
   id: string;
   type: "task.assigned" | "task.moved";
@@ -48,6 +53,10 @@ export default function Home() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifyCenter, setShowNotifyCenter] = useState(false);
   const [selectedTaskForAssign, setSelectedTaskForAssign] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
 
   const authorizedFetch = useCallback(
     async (url: string, options?: RequestInit) => {
@@ -86,7 +95,7 @@ export default function Home() {
   const loadMembers = useCallback(async (targetProjectId: string) => {
     try {
       const response = await authorizedFetch(
-        `${API_URL}/projects/${targetProjectId}/members`,
+        `${API_URL}/api/v1/projects/${targetProjectId}/members`,
       );
       if (response.ok) {
         const data = (await response.json()) as ProjectMember[];
@@ -99,44 +108,68 @@ export default function Home() {
 
   const loadTasks = useCallback(async (targetProjectId: string) => {
     const response = await authorizedFetch(
-      `${API_URL}/tasks?projectId=${targetProjectId}`,
+      `${API_URL}/api/v1/tasks?projectId=${targetProjectId}`,
     );
     const data = (await response.json()) as Task[];
     setTasks(data);
   }, [authorizedFetch]);
 
-  const ensureProjectThenLoad = useCallback(async () => {
+  const loadProjects = useCallback(async () => {
     try {
       if (!token) {
         return;
       }
+      setLoadingProjects(true);
+      const projectsRes = await authorizedFetch(`${API_URL}/api/v1/projects`);
+      const projectsList = (await projectsRes.json()) as Project[];
+      setProjects(projectsList);
+      setError(null);
+    } catch (err) {
+      setError("Impossible de charger les projets.");
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, [authorizedFetch, token]);
 
-      const projectsRes = await authorizedFetch(`${API_URL}/projects`);
-      const projects = (await projectsRes.json()) as Array<{ id: string; name: string }>;
-      const existingProject = projects.find((project) => project.name === DEMO_PROJECT_NAME);
+  const selectProject = async (id: string) => {
+    setProjectId(id);
+    await loadTasks(id);
+    await loadMembers(id);
+  };
 
-      if (existingProject) {
-        setProjectId(existingProject.id);
-        await loadTasks(existingProject.id);
-        await loadMembers(existingProject.id);
+  const createProject = async () => {
+    if (!newProjectName.trim()) {
+      setError("Entrez un nom pour le projet");
+      return;
+    }
+
+    try {
+      setCreatingProject(true);
+      const response = await authorizedFetch(`${API_URL}/api/v1/projects`, {
+        method: "POST",
+        body: JSON.stringify({ name: newProjectName }),
+      });
+
+      if (!response.ok) {
+        setError("Erreur lors de la création du projet");
         return;
       }
 
-      const createdResponse = await authorizedFetch(`${API_URL}/projects`, {
-        method: "POST",
-        body: JSON.stringify({ name: DEMO_PROJECT_NAME }),
-      });
-
-      const createdProject = (await createdResponse.json()) as { id: string };
-      setProjectId(createdProject.id);
-      await loadTasks(createdProject.id);
-      await loadMembers(createdProject.id);
+      const newProject = (await response.json()) as Project;
+      setNewProjectName("");
+      setError(null);
+      
+      // Reload projects and select the new one
+      await loadProjects();
+      await selectProject(newProject.id);
     } catch (err) {
-      setError("Impossible de charger le projet de demo.");
+      setError("Impossible de créer le projet");
+    } finally {
+      setCreatingProject(false);
     }
-  }, [authorizedFetch, loadTasks, loadMembers, token]);
+  };
 
-  async function authenticate() {
+  const authenticate = async () => {
     try {
       const endpoint = authMode === "login" ? "login" : "register";
       const response = await fetch(`${API_URL}/auth/${endpoint}`, {
@@ -179,8 +212,8 @@ export default function Home() {
     }
 
     initializeRef.current = true;
-    void ensureProjectThenLoad();
-  }, [token, ensureProjectThenLoad]);
+    void loadProjects();
+  }, [token, loadProjects]);
 
   useEffect(() => {
     if (!token || !projectId) {
@@ -203,6 +236,16 @@ export default function Home() {
       addNotification(`Vous avez été assigné à: "${data.taskTitle}"`, "task.assigned");
     });
 
+      socket.on("task.created", (data) => {
+        void loadTasks(projectId);
+        addNotification(`Nouvelle tâche créée`, "task.moved");
+      });
+
+      socket.on("task.deleted", (data) => {
+        void loadTasks(projectId);
+        addNotification(`Tâche supprimée`, "task.moved");
+      });
+
     return () => {
       socket.emit("project.leave", { projectId });
       socket.disconnect();
@@ -214,7 +257,7 @@ export default function Home() {
       return;
     }
 
-    const response = await authorizedFetch(`${API_URL}/tasks`, {
+    const response = await authorizedFetch(`${API_URL}/api/v1/tasks`, {
       method: "POST",
       body: JSON.stringify({
         projectId,
@@ -232,7 +275,7 @@ export default function Home() {
   }
 
   async function moveTask(task: Task) {
-    await authorizedFetch(`${API_URL}/tasks/${task.id}/move`, {
+    await authorizedFetch(`${API_URL}/api/v1/tasks/${task.id}/move`, {
       method: "PATCH",
       body: JSON.stringify({
         status: nextStatus[task.statusValue],
@@ -246,7 +289,7 @@ export default function Home() {
 
   async function assignTask(taskId: string, assigneeId: string) {
     try {
-      const response = await authorizedFetch(`${API_URL}/tasks/${taskId}/assign`, {
+      const response = await authorizedFetch(`${API_URL}/api/v1/tasks/${taskId}/assign`, {
         method: "PATCH",
         body: JSON.stringify({ assigneeId }),
       });
@@ -262,11 +305,31 @@ export default function Home() {
     }
   }
 
+  async function deleteTask(taskId: string) {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette tâche?")) {
+      return;
+    }
+
+    try {
+      const response = await authorizedFetch(`${API_URL}/api/v1/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok && projectId) {
+        await loadTasks(projectId);
+      } else {
+        setError("Impossible de supprimer la tâche");
+      }
+    } catch {
+      setError("Erreur lors de la suppression");
+    }
+  }
+
   const columns = useMemo(
     () => [
-      { key: "todo" as const, label: "À faire", icon: "📋" },
-      { key: "in-progress" as const, label: "En cours", icon: "⚙️" },
-      { key: "done" as const, label: "Terminé", icon: "✅" },
+      { key: "todo" as const, label: "À faire", icon: "" },
+      { key: "in-progress" as const, label: "En cours", icon: "" },
+      { key: "done" as const, label: "Terminé", icon: "" },
     ],
     [],
   );
@@ -352,6 +415,126 @@ export default function Home() {
             <p style={{ fontSize: "0.85rem", color: "#999", marginTop: "1rem", textAlign: "center" }}>
               Démo: demo@taskflow.local / demo1234
             </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!projectId) {
+    return (
+      <main style={{ padding: "4rem 1rem", background: "#f5f7fa", minHeight: "100vh", display: "flex", alignItems: "center" }}>
+        <section style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
+          <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+            <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "0.5rem", color: "#1a1a1a" }}>
+              TaskFlow
+            </h1>
+            <p style={{ color: "#666", fontSize: "1rem" }}>Sélectionnez un projet</p>
+          </div>
+
+          {error && (
+            <div style={{ padding: "1rem", background: "#fee", border: "1px solid #fcc", borderRadius: "0.5rem", marginBottom: "1rem", color: "#c33" }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ background: "white", padding: "2rem", borderRadius: "0.75rem", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+            {loadingProjects ? (
+              <p style={{ color: "#666", textAlign: "center" }}>Chargement des projets...</p>
+            ) : projects.length > 0 ? (
+              <div style={{ display: "grid", gap: "1rem" }}>
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => void selectProject(project.id)}
+                    style={{
+                      padding: "1rem",
+                      background: "white",
+                      border: "1px solid #ddd",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f9f9f9";
+                      e.currentTarget.style.borderColor = "#0066cc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "white";
+                      e.currentTarget.style.borderColor = "#ddd";
+                    }}
+                  >
+                    <div style={{ fontWeight: "600", color: "#1a1a1a" }}>{project.name}</div>
+                    <div style={{ fontSize: "0.85rem", color: "#666", marginTop: "0.25rem" }}>ID: {project.id}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center" }}>
+                <p style={{ color: "#666", marginBottom: "1.5rem" }}>Aucun projet disponible</p>
+                <div style={{ display: "grid", gap: "0.75rem" }}>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Nom du nouveau projet"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        void createProject();
+                      }
+                    }}
+                    style={{
+                      padding: "0.75rem 1rem",
+                      border: "1px solid #ddd",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                    }}
+                  />
+                  <button
+                    onClick={() => void createProject()}
+                    disabled={creatingProject}
+                    style={{
+                      padding: "0.75rem 1rem",
+                      background: "#0066cc",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      cursor: creatingProject ? "not-allowed" : "pointer",
+                      opacity: creatingProject ? 0.6 : 1,
+                    }}
+                  >
+                    {creatingProject ? "Création en cours..." : "Créer un projet"}
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                localStorage.removeItem("taskflow.token");
+                setToken(null);
+                setProjectId(null);
+                setProjects([]);
+                setError(null);
+              }}
+              style={{
+                marginTop: "2rem",
+                width: "100%",
+                padding: "0.75rem 1rem",
+                background: "white",
+                color: "#666",
+                border: "1px solid #ddd",
+                borderRadius: "0.5rem",
+                fontSize: "0.95rem",
+                cursor: "pointer",
+              }}
+            >
+              Se déconnecter
+            </button>
           </div>
         </section>
       </main>
@@ -643,7 +826,7 @@ export default function Home() {
                                 transition: "all 0.2s",
                               }}
                             >
-                              ➡️ Suivant
+                              Suivant
                             </button>
 
                             {members.length > 0 && (
@@ -707,6 +890,23 @@ export default function Home() {
                                 )}
                               </div>
                             )}
+
+                            <button
+                              onClick={() => deleteTask(task.id)}
+                              style={{
+                                padding: "0.5rem 0.75rem",
+                                border: "1px solid #ddd",
+                                background: "white",
+                                borderRadius: "0.4rem",
+                                cursor: "pointer",
+                                fontSize: "0.85rem",
+                                fontWeight: "500",
+                                color: "#c33",
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              Supprimer
+                            </button>
                           </div>
                         </div>
                       );

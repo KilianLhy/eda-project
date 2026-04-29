@@ -6,6 +6,7 @@ import { Task } from '../domain/task.entity';
 import { createTaskAssignedEvent } from '../domain/task-assigned.event';
 import { createTaskCreatedEvent } from '../domain/task-created.event';
 import { createTaskMovedEvent } from '../domain/task-moved.event';
+import { createTaskDeletedEvent } from '../domain/task-deleted.event';
 import { TASK_REPOSITORY } from '../domain/task.repository';
 import type { TaskRepository } from '../domain/task.repository';
 import { TaskStatusValue } from '../domain/task-status.vo';
@@ -86,5 +87,18 @@ export class TaskService {
       createTaskAssignedEvent(updated.id, assigneeId, actorId),
     );
     return updated;
+  }
+
+  async deleteTask(taskId: string, actorId?: string): Promise<void> {
+    const task = await this.taskRepository.findById(taskId);
+
+    if (!task) {
+      throw new NotFoundException(`Task ${taskId} not found`);
+    }
+
+    await this.taskRepository.delete(taskId);
+    this.eventBus.publish(
+      createTaskDeletedEvent(taskId, task.projectId, actorId),
+    );
   }
 }

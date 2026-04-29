@@ -79,3 +79,17 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([occurredAt])
 }
+
+model FailedMessage {
+  id           String   @id @default(cuid())
+  channelName  String
+  userId       String
+  context      Json
+  error        String
+  failedAt     DateTime @default(now())
+  retryCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([failedAt])
+}
